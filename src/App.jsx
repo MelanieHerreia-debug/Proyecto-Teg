@@ -783,19 +783,40 @@
    // Disparar verificación al montar
    useEffect(() => { verificar(); }, []);
  
-   const handleRegistrar = async () => {
+  const handleRegistrar = async () => {
      setFormError("");
      const ced = cedula.trim();
      if (!ced) { setFormError("Ingresa tu número de cédula."); return; }
      if (!/^\d{10}$/.test(ced)) { setFormError("La cédula debe tener exactamente 10 dígitos numéricos."); return; }
  
-     // Antiduplica
-     const yaRegistrado = DB.registros.find((r) => r.cedula === ced && r.sesionId === params.sesionId);
+     // Antiduplica (También normalizado a texto por si acaso)
+     const yaRegistrado = DB.registros.find((r) => 
+       r.cedula?.toString().trim() === ced.toString().trim() && r.sesionId === params.sesionId
+     );
      if (yaRegistrado) { setFormError("Tu asistencia ya fue registrada en esta sesión."); return; }
  
-     // Verifica existencia en lista Excel
-     const est = DB.estudiantesXLS.find((e) => e.cedula === ced);
-     if (!est) { setFormError("Cédula no encontrada en la lista oficial de este paralelo."); return; }
+     // ═══════════════════════════════════════════════════════════════════════════
+     // CORRECCIÓN AQUÍ: Verifica existencia en lista Excel normalizando tipos de datos
+     // ═══════════════════════════════════════════════════════════════════════════
+     const est = DB.estudiantesXLS.find((e) => {
+       if (!e.cedula) return false;
+       
+       const cedulaExcel = e.cedula.toString().trim();
+       const cedulaFormulario = ced.toString().trim();
+       
+       // 1. Coincidencia exacta
+       if (cedulaExcel === cedulaFormulario) return true;
+       
+       // 2. Coincidencia si Excel eliminó el '0' inicial (ej: Excel tiene '1755...' y el formulario '01755...')
+       if (cedulaFormulario.startsWith('0') && cedulaExcel === cedulaFormulario.substring(1)) return true;
+       
+       return false;
+     });
+
+     if (!est) { 
+       setFormError("Cédula no encontrada en la lista oficial de este paralelo."); 
+       return; 
+     }
  
      setEnviando(true);
      try {
