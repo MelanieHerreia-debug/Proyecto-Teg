@@ -71,38 +71,48 @@
  // ═══════════════════════════════════════════════════════════════════════════════
  // ❹  PARSEO DE EXCEL — lee CEDULA, NOMBRES, APELLIDOS
  // ═══════════════════════════════════════════════════════════════════════════════
- function parseExcel(file) {
-   return new Promise((resolve, reject) => {
-     const reader = new FileReader();
-     reader.onload = (e) => {
-       try {
-         const wb   = XLSX.read(e.target.result, { type: "binary" });
-         const ws   = wb.Sheets[wb.SheetNames[0]];
-         const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
-         // Normaliza nombres de columnas a mayúsculas sin tildes
-         const norm = (s) => String(s).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-         const data = rows.map((row) => {
-           const keys = Object.keys(row);
-           const find = (variants) => {
-             const k = keys.find((k) => variants.includes(norm(k)));
-             return k ? String(row[k]).trim() : "";
-           };
-           return {
-             cedula:    find(["CEDULA","CÉDULA","CI","IDENTIFICACION","IDENTIFICACIÓN","ID"]),
-             nombres:   find(["NOMBRES","NOMBRE"]),
-             apellidos: find(["APELLIDOS","APELLIDO"]),
-           };
-         }).filter((r) => r.cedula);
-         resolve(data);
-       } catch {
-         reject(new Error("No se pudo leer el archivo Excel. Verifica el formato."));
-       }
-     };
-     reader.onerror = () => reject(new Error("Error al leer el archivo."));
-     reader.readAsBinaryString(file);
-   });
- }
- 
+// ═══════════════════════════════════════════════════════════════════════════════
+// ❹  PARSEO DE EXCEL — lee CEDULA, NOMBRES, APELLIDOS (CORREGIDO PARA CÉDULAS)
+// ═══════════════════════════════════════════════════════════════════════════
+function parseExcel(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const wb   = XLSX.read(e.target.result, { type: "binary" });
+        const ws   = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+        // Normaliza nombres de columnas a mayúsculas sin tildes
+        const norm = (s) => String(s).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        const data = rows.map((row) => {
+          const keys = Object.keys(row);
+          const find = (variants) => {
+            const k = keys.find((k) => variants.includes(norm(k)));
+            return k ? String(row[k]).trim() : "";
+          };
+
+          let cedulaLimpia = find(["CEDULA","CÉDULA","CI","IDENTIFICACION","IDENTIFICACIÓN","ID"]);
+          
+          // CORRECCIÓN: Si Excel eliminó el cero inicial y la cédula quedó de 9 dígitos, se lo devolvemos
+          if (cedulaLimpia && cedulaLimpia.length === 9) {
+            cedulaLimpia = "0" + cedulaLimpia;
+          }
+
+          return {
+            cedula:    cedulaLimpia,
+            nombres:   find(["NOMBRES","NOMBRE"]),
+            apellidos: find(["APELLIDOS","APELLIDO"]),
+          };
+        }).filter((r) => r.cedula);
+        resolve(data);
+      } catch {
+        reject(new Error("No se pudo leer el archivo Excel. Verifica el formato."));
+      }
+    };
+    reader.onerror = () => reject(new Error("Error al leer el archivo."));
+    reader.readAsBinaryString(file);
+  });
+}
  // ═══════════════════════════════════════════════════════════════════════════════
  // ❺  UTILIDADES
  // ═══════════════════════════════════════════════════════════════════════════════
