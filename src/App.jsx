@@ -753,18 +753,19 @@
      const det = { ip, lat, lon, distM, ipMatch, gpsOk };
      setDetalles(det);
  
-     // ── REGLA MÁXIMA DE SEGURIDAD ──────────────────────────────────────────────
-     // GPS falla (fuera del perímetro) → BLOQUEO INMEDIATO sin excepción
-     if (!gpsOk) {
+     // ── REGLA DE SEGURIDAD FLEXIBLE (LÓGICA O) ──────────────────────────────────
+     // Si tiene la IP de la universidad O está dentro del rango GPS, se aprueba.
+     if (ipMatch || gpsOk) {
+       setEstado("aprobado");
+     } else {
+       // Solo se bloquea si AMBAS validaciones fallaron
        setEstado("bloqueado_gps");
-       setMensaje(`Acceso denegado: Te encuentras fuera del perímetro de la institución (distancia: ${Math.round(distM)} m; máximo permitido: ${RANGO_TOLERANCIA_M} m).`);
-       return;
+       setMensaje(
+         `Acceso denegado: Tu red actual no pertenece a la institución y te encuentras fuera del perímetro permitido (distancia: ${Math.round(distM)} m; máximo permitido: ${RANGO_TOLERANCIA_M} m).`
+       );
      }
- 
-     // GPS OK (dentro del campus) → acceso aprobado independientemente de IP
-     setEstado("aprobado");
    }, []);
- 
+
    return { estado, detalles, mensaje, verificar };
  }
  
