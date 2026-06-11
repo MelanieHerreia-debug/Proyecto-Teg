@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECURITY CONSTANTS — Production values
 // ═══════════════════════════════════════════════════════════════════════════════
-const IP_UNIVERSIDAD     = "186.46.12.34";
+const IP_UNIVERSIDAD     = "149.50.194.73";
 const LAT_UNIVERSIDAD    = -0.199764;
 const LON_UNIVERSIDAD    = -78.504938;
 const RANGO_TOLERANCIA_M = 500;
