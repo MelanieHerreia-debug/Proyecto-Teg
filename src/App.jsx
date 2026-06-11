@@ -34,7 +34,7 @@
  const APP_BASE_URL = window.location.origin + window.location.pathname;
  
  // Modo DEMO: usa memoria en lugar de fetch real al backend
- const DEMO_MODE = true;
+ const DEMO_MODE = false;
  
  // ── Endpoints backend (ignorados en DEMO_MODE) ──
  const API = {
