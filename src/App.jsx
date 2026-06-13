@@ -38,7 +38,7 @@ const sheetsAPI = {
   async post(body) {
     const res  = await fetch(APPS_SCRIPT_URL, {
       method:  "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain" },
       body:    JSON.stringify(body),
     });
     const json = await res.json();
