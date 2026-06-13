@@ -860,7 +860,7 @@ function DashboardScreen({ professor, courses, onLogout, onManualSave, onGoToCou
                         </td>
                         <td style={s.td}>
                           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                            <div style={{ ...s.studentAvatar, width:28, height:28, fontSize:12, background:`hsl(${(a.cedula||"0").charCodeAt(0)*37%360},45%,30%)` }}>
+                            <div style={{ ...s.studentAvatar, width:28, height:28, fontSize:12, background:`hsl(${(String(a.cedula || "0")).charCodeAt(0)*37%360},45%,30%)` }}>
                               {(a.nombre||"?")[0].toUpperCase()}
                             </div>
                             <span style={{ color:"#e2e8f0" }}>{a.nombre}</span>
