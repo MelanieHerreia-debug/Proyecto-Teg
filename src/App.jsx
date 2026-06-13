@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURACIÓN — reemplaza con tu URL de Google Apps Script desplegado
 // ═══════════════════════════════════════════════════════════════════════════════
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/TU_DEPLOYMENT_ID/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwMVu7eXg88rUMbwReH7FpzGZeQfgJeFxreD0mLwKnPVsZG7dKgBHNXVoSIKimzHf3-/exec";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECURITY CONSTANTS — Production values
