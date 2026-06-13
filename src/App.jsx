@@ -211,40 +211,56 @@ function useSecurityVerification() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // QR GENERATOR (usando qrcode.js vía CDN)
 // ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// QR GENERATOR (Corregido usando un DIV contenedor)
+// ═══════════════════════════════════════════════════════════════════════════════
 function QRCode({ value, size = 180 }) {
-  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
-    if (!canvasRef.current || !value) return;
-    const canvas = canvasRef.current;
-    const ctx    = canvas.getContext("2d");
-    ctx.clearRect(0, 0, size, size);
+    if (!containerRef.current || !value) return;
+    
+    // 1. Limpiamos el contenedor para que no se acumulen QRs viejos
+    containerRef.current.innerHTML = "";
 
-    // Dibujar QR usando la API nativa si está disponible
     if (window.QRCode) {
-      canvas.innerHTML = "";
-      new window.QRCode(canvas, {
-        text:          value,
-        width:         size,
-        height:        size,
-        colorDark:     "#e2e8f0",
-        colorLight:    "#060d1e",
-        correctLevel:  window.QRCode.CorrectLevel.M,
-      });
+      try {
+        // 2. Le pasamos el DIV de referencia a la librería
+        new window.QRCode(containerRef.current, {
+          text:          value,
+          width:          size,
+          height:         size,
+          colorDark:      "#e2e8f0", // Color claro para los módulos del QR
+          colorLight:     "#060d1e", // Fondo oscuro que hace match con tu app
+          correctLevel:   window.QRCode.CorrectLevel.M,
+        });
+      } catch (err) {
+        console.error("Error al renderizar qrcode.js:", err);
+      }
     } else {
-      // Fallback: texto centrado mientras carga la librería
-      ctx.fillStyle  = "#060d1e";
-      ctx.fillRect(0, 0, size, size);
-      ctx.fillStyle  = "#e2e8f0";
-      ctx.font       = "12px monospace";
-      ctx.textAlign  = "center";
-      ctx.fillText("Cargando QR...", size/2, size/2);
+      // Fallback en texto por si la librería tarda en responder desde el CDN
+      containerRef.current.innerHTML = `<div style="color: #e2e8f0; font-family: monospace; font-size: 12px; text-align: center; line-height: ${size}px;">Cargando QR...</div>`;
     }
   }, [value, size]);
 
-  return <canvas ref={canvasRef} width={size} height={size} style={s.qrImage} />;
+  // CAMBIO CLAVE: Usamos un <div> en lugar de un <canvas>
+  return (
+    <div 
+      ref={containerRef} 
+      style={{ 
+        ...s.qrImage, 
+        width: size, 
+        height: size, 
+        background: "#060d1e", 
+        padding: "8px", 
+        borderRadius: "8px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }} 
+    />
+  );
 }
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // MODAL: GESTIÓN DE CURSOS (Crear / Editar)
 // ═══════════════════════════════════════════════════════════════════════════════
