@@ -1,3 +1,21 @@
+CORRECCIÓN ADICIONAL
+
+No quiero una sección llamada "Previsualizar vista del estudiante", "Vista del estudiante", "Simulación del estudiante" ni ningún componente similar dentro del panel del docente.
+
+El flujo que necesito es el siguiente:
+
+1. El docente ingresa al sistema.
+2. El docente selecciona una clase o curso.
+3. El docente presiona el botón "Tomar asistencia".
+4. El sistema genera y muestra únicamente el código QR.
+5. El docente comparte o proyecta ese código QR a los estudiantes.
+6. Los estudiantes escanean el QR desde sus propios dispositivos.
+7. El formulario de asistencia debe abrirse únicamente en el dispositivo del estudiante después de escanear el QR.
+8. El panel del docente no debe mostrar ninguna previsualización, simulación ni réplica de la pantalla del estudiante.
+
+Por favor elimina completamente cualquier sección de previsualización de estudiante que exista actualmente y deja únicamente la funcionalidad necesaria para generar y mostrar el código QR al docente.
+
+
 import { useState, useEffect, useRef, useCallback } from "react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -660,7 +678,7 @@ function CoursesScreen({ professor, courses, loadingCourses, onRefresh, onSelect
 // ═══════════════════════════════════════════════════════════════════════════════
 // SCREEN 2B — DASHBOARD (actualizado con datos reales + filtros)
 // ═══════════════════════════════════════════════════════════════════════════════
-function DashboardScreen({ professor, courses, onLogout, onManualSave, onGoToCourses, onSelectCourse }) {
+function DashboardScreen({ professor, courses, selectedCourse, onLogout, onManualSave, onGoToCourses }) {
   const [tab,          setTab]          = useState("qr");
   const [activeCourse, setActiveCourse] = useState(null);
   const [showManual,   setShowManual]   = useState(false);
@@ -689,6 +707,12 @@ function DashboardScreen({ professor, courses, onLogout, onManualSave, onGoToCou
   }, []);
 
   useEffect(() => { if (tab === "report") loadAsistencias(); }, [tab]);
+  useEffect(() => {
+    if (selectedCourse) {
+      setActiveCourse(selectedCourse);
+      setTab("qr");
+    }
+  }, [selectedCourse]);
   useEffect(() => { if (courses.length > 0 && !activeCourse) setActiveCourse(courses[0]); }, [courses]);
 
   const qrURL = activeCourse
@@ -775,10 +799,6 @@ function DashboardScreen({ professor, courses, onLogout, onManualSave, onGoToCou
                   </span>
                 </div>
 
-                <button style={{ ...s.primaryBtn, width:"100%", justifyContent:"center", marginTop:12 }}
-                  onClick={() => onSelectCourse(activeCourse)}>
-                  <Icon.Play /><span style={{ marginLeft:6 }}>Previsualizar vista del estudiante</span>
-                </button>
               </>
             ) : (
               <div style={{ textAlign:"center", padding:"40px 0", color:"#475569" }}>
@@ -1139,6 +1159,7 @@ export default function App() {
   const [screen,        setScreen]        = useState("boot");
   const [professor,     setProfessor]     = useState(null);
   const [studentCourse, setStudentCourse] = useState(null);
+  const [selectedCourse,setSelectedCourse]= useState(null);
   const [courses,       setCourses]       = useState([]);
   const [loadingCourses,setLoadingCourses]= useState(false);
 
@@ -1181,7 +1202,12 @@ export default function App() {
     setScreen("dashboard");
   };
 
-  const handleLogout = () => { setProfessor(null); setCourses([]); setScreen("login"); };
+  const handleLogout = () => { setProfessor(null); setCourses([]); setSelectedCourse(null); setScreen("login"); };
+
+  const handleTakeAttendance = (course) => {
+    setSelectedCourse(course);
+    setScreen("dashboard");
+  };
 
   if (screen==="boot") return (
     <div style={{ minHeight:"100vh", background:"#040812", display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -1213,10 +1239,10 @@ export default function App() {
         <DashboardScreen
           professor={professor}
           courses={courses}
+          selectedCourse={selectedCourse}
           onLogout={handleLogout}
           onManualSave={() => {}}
           onGoToCourses={() => setScreen("courses")}
-          onSelectCourse={c => { setStudentCourse(c); setScreen("student"); }}
         />
       )}
       {screen==="courses" && professor && (
@@ -1225,7 +1251,7 @@ export default function App() {
           courses={courses}
           loadingCourses={loadingCourses}
           onRefresh={loadCourses}
-          onSelectCourse={c => { setStudentCourse(c); setScreen("student"); }}
+          onSelectCourse={handleTakeAttendance}
           onBack={() => setScreen("dashboard")}
           onLogout={handleLogout}
         />
