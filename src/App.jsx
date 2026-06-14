@@ -1,6 +1,4 @@
 
-
-
 import { useState, useEffect, useRef, useCallback } from "react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -967,7 +965,7 @@ function StudentScreen({ course, token: qrToken, onBack }) {
     <div style={s.mobileBg}>
       {/* Status bar */}
       <div style={s.mobileStatusBar}>
-        <span>{now.toLocaleTimeString("es-EC",{ hour:"2-digit", minute:"2-digit" })}</span>
+        <span>{now.toLocaleTimeString("es-EC",{ hour:"2-digit", minute:"2-digit", hour12: true })}</span>
         <div style={{ display:"flex", gap:6, alignItems:"center" }}>
           <Icon.Wifi  color={status==="granted"?"#22c55e":"#334155"} />
           <Icon.MapPin color={status==="granted"?"#22c55e":"#334155"} />
@@ -991,7 +989,7 @@ function StudentScreen({ course, token: qrToken, onBack }) {
           <div>
             <div style={s.mobileCourseTitle}>{course?.name || "Registro de Asistencia"}</div>
             <div style={s.mobileCourseCode}>
-              {course?.id || "—"} · {now.toLocaleDateString("es-EC",{ weekday:"long", day:"numeric", month:"long" })}
+              {course?.id || "—"} · {now.toLocaleDateString("es-EC",{ day:"2-digit", month:"2-digit", year:"numeric" })}
             </div>
           </div>
         </div>
