@@ -1184,7 +1184,7 @@ export default function App() {
   const handleLogin = async (prof) => {
     setProfessor(prof);
     await loadCourses();
-    setScreen("dashboard");
+    setScreen("courses");
   };
 
   const handleLogout = () => { setProfessor(null); setCourses([]); setSelectedCourse(null); setScreen("login"); };
