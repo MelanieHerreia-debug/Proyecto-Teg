@@ -133,6 +133,49 @@ function Spinner({ size = 28, color = "#3b82f6" }) {
   );
 }
 
+const APP_TIME_ZONE = "America/Guayaquil";
+
+function getLocalDateParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date).reduce((acc, part) => {
+    acc[part.type] = part.value;
+    return acc;
+  }, {});
+
+  return {
+    fecha: `${parts.year}-${parts.month}-${parts.day}`,
+    hora: `${parts.hour}:${parts.minute}`,
+  };
+}
+
+function normalizeReportDate(value) {
+  if (!value) return "";
+  const raw = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) return getLocalDateParts(new Date(raw)).fecha;
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const slash = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (slash) return `${slash[3]}-${slash[2].padStart(2,"0")}-${slash[1].padStart(2,"0")}`;
+  return raw;
+}
+
+function normalizeReportTime(value) {
+  if (!value) return "";
+  const raw = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) return getLocalDateParts(new Date(raw)).hora;
+  const time = raw.match(/(\d{1,2}):(\d{2})/);
+  if (time) return `${time[1].padStart(2,"0")}:${time[2]}`;
+  return raw;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // QR TIMER HOOK
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -361,11 +404,14 @@ function ManualModal({ courses, onSave, onClose }) {
     const curso = courses.find(c => c.id === courseId);
     setSaving(true);
     try {
+      const { fecha, hora } = getLocalDateParts();
       await sheetsAPI.registrarAsistencia({
         cursoId:     courseId,
         cursoNombre: curso?.name || courseId,
         nombre:      studentName.trim(),
         cedula:      cedula.trim(),
+        fecha,
+        hora,
         metodo:      "manual",
       });
       onSave({ cursoId:courseId, cursoNombre:curso?.name||courseId, nombre:studentName.trim(), cedula:cedula.trim(), metodo:"manual" });
@@ -675,14 +721,6 @@ function DashboardScreen({ professor, courses, selectedCourse, onLogout, onManua
   const [filterCedula, setFilterCedula] = useState("");
   const [filterNombre, setFilterNombre] = useState("");
 
-    // Reloj en tiempo real para la barra de estado y tarjetas
-  const [now, setNow] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
   const { token, secondsLeft } = useQRTimer(tab === "qr" && !!activeCourse, 30);
 
   const loadAsistencias = useCallback(async () => {
@@ -697,7 +735,12 @@ function DashboardScreen({ professor, courses, selectedCourse, onLogout, onManua
     }
   }, []);
 
-  useEffect(() => { if (tab === "report") loadAsistencias(); }, [tab]);
+  useEffect(() => { if (tab === "report") loadAsistencias(); }, [tab, loadAsistencias]);
+  useEffect(() => {
+    if (tab !== "report") return;
+    const timer = setInterval(loadAsistencias, 10000);
+    return () => clearInterval(timer);
+  }, [tab, loadAsistencias]);
   useEffect(() => {
     if (selectedCourse) {
       setActiveCourse(selectedCourse);
@@ -709,11 +752,12 @@ function DashboardScreen({ professor, courses, selectedCourse, onLogout, onManua
   const qrURL = activeCourse
     ? `${window.location.origin}${window.location.pathname}?materia=${activeCourse.id}&token=${token}`
     : null;
+  const todayLocal = getLocalDateParts().fecha;
 
   // Asistencias filtradas
   const asistenciasFiltradas = asistencias.filter(a =>
     (!filterCurso  || a.cursoId===filterCurso) &&
-    (!filterFecha  || a.fecha===filterFecha) &&
+    (!filterFecha  || normalizeReportDate(a.fecha)===filterFecha) &&
     (!filterCedula || a.cedula.includes(filterCedula.trim())) &&
     (!filterNombre || a.nombre.toLowerCase().includes(filterNombre.toLowerCase().trim()))
   );
@@ -819,8 +863,7 @@ function DashboardScreen({ professor, courses, selectedCourse, onLogout, onManua
                 { label:"Estudiantes únicos", value:totalEstudiantes, color:"#3b82f6" },
                 { label:"Total asistencias",  value:totalAsistencias, color:"#22c55e" },
                 { label:"Cursos con datos",   value:cursosActivos,    color:"#f59e0b" },
-                { label:"Registros hoy",      value:asistencias.filter(a=>a.fecha===now.toLocaleDateString("sv-SE")).length, color:"#8b5cf6" },
-
+                { label:"Registros hoy",      value:asistencias.filter(a=>normalizeReportDate(a.fecha)===todayLocal).length, color:"#8b5cf6" },
               ].map((c, i) => (
                 <div key={i} style={{ ...s.summaryCard, borderColor:`${c.color}33` }}>
                   <div style={{ fontSize:28, fontWeight:800, color:c.color }}>{c.value}</div>
@@ -880,8 +923,8 @@ function DashboardScreen({ professor, courses, selectedCourse, onLogout, onManua
                       </td></tr>
                     ) : asistenciasFiltradas.map((a, i) => (
                       <tr key={i} style={s.tr}>
-                        <td style={s.td}>{a.fecha}</td>
-                        <td style={s.td}>{a.hora}</td>
+                        <td style={s.td}>{normalizeReportDate(a.fecha)}</td>
+                        <td style={s.td}>{normalizeReportTime(a.hora)}</td>
                         <td style={s.td}>
                           <span style={{ ...s.idBadge }}>{a.cursoId}</span>
                           <span style={{ marginLeft:6, color:"#64748b", fontSize:12 }}>{a.cursoNombre}</span>
@@ -938,14 +981,8 @@ function StudentScreen({ course, token: qrToken, onBack }) {
   const [success,     setSuccess]     = useState(false);
   const [successData, setSuccessData] = useState(null);
   const [formError,   setFormError]   = useState("");
-    // Reloj en tiempo real para la barra de estado y tarjetas
-  const [now, setNow] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
+  const now = new Date();
+  const localNow = getLocalDateParts(now);
 
   const fmtDist = m => m===null ? "—" : m<1000 ? `${Math.round(m)} m` : `${(m/1000).toFixed(2)} km`;
 
@@ -957,11 +994,14 @@ function StudentScreen({ course, token: qrToken, onBack }) {
 
     setSubmitting(true);
     try {
+      const { fecha, hora } = getLocalDateParts();
       await sheetsAPI.registrarAsistencia({
         cursoId:     course?.id    || "DEMO",
         cursoNombre: course?.name  || "Demo",
         nombre:      nombre.trim(),
         cedula:      cedula.trim(),
+        fecha,
+        hora,
         metodo:      "qr",
       });
       setSuccessData({ nombre:nombre.trim(), cedula:cedula.trim() });
@@ -981,7 +1021,7 @@ function StudentScreen({ course, token: qrToken, onBack }) {
     <div style={s.mobileBg}>
       {/* Status bar */}
       <div style={s.mobileStatusBar}>
-        <span>{now.toLocaleTimeString("es-EC",{ hour:"2-digit", minute:"2-digit", hour12: true })}</span>
+        <span>{localNow.hora}</span>
         <div style={{ display:"flex", gap:6, alignItems:"center" }}>
           <Icon.Wifi  color={status==="granted"?"#22c55e":"#334155"} />
           <Icon.MapPin color={status==="granted"?"#22c55e":"#334155"} />
@@ -1005,7 +1045,7 @@ function StudentScreen({ course, token: qrToken, onBack }) {
           <div>
             <div style={s.mobileCourseTitle}>{course?.name || "Registro de Asistencia"}</div>
             <div style={s.mobileCourseCode}>
-              {course?.id || "—"} · {now.toLocaleDateString("es-EC",{ day:"2-digit", month:"2-digit", year:"numeric" })}
+              {course?.id || "—"} · {now.toLocaleDateString("es-EC",{ timeZone:APP_TIME_ZONE, weekday:"long", day:"numeric", month:"long" })}
             </div>
           </div>
         </div>
@@ -1141,7 +1181,7 @@ function StudentScreen({ course, token: qrToken, onBack }) {
               </div>
               <div>
                 <div style={{ fontSize:10, color:"#475569", marginBottom:4, textTransform:"uppercase" }}>Hora</div>
-                <div style={{ color:"#e2e8f0", fontWeight:600, fontSize:13 }}>{now.toLocaleTimeString("es-EC",{ hour:"2-digit", minute:"2-digit" })}</div>
+                <div style={{ color:"#e2e8f0", fontWeight:600, fontSize:13 }}>{localNow.hora}</div>
               </div>
             </div>
           </div>
@@ -1198,7 +1238,7 @@ export default function App() {
   const handleLogin = async (prof) => {
     setProfessor(prof);
     await loadCourses();
-    setScreen("courses");
+    setScreen("dashboard");
   };
 
   const handleLogout = () => { setProfessor(null); setCourses([]); setSelectedCourse(null); setScreen("login"); };
