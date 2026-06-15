@@ -669,14 +669,19 @@ function DashboardScreen({ professor, courses, selectedCourse, onLogout, onManua
   const [loadingData,  setLoadingData]  = useState(false);
   const [apiError,     setApiError]     = useState("");
 
-  
-
-
   // Filtros
   const [filterCurso,  setFilterCurso]  = useState("");
   const [filterFecha,  setFilterFecha]  = useState("");
   const [filterCedula, setFilterCedula] = useState("");
   const [filterNombre, setFilterNombre] = useState("");
+
+    // Reloj en tiempo real para la barra de estado y tarjetas
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const { token, secondsLeft } = useQRTimer(tab === "qr" && !!activeCourse, 30);
 
@@ -814,7 +819,8 @@ function DashboardScreen({ professor, courses, selectedCourse, onLogout, onManua
                 { label:"Estudiantes únicos", value:totalEstudiantes, color:"#3b82f6" },
                 { label:"Total asistencias",  value:totalAsistencias, color:"#22c55e" },
                 { label:"Cursos con datos",   value:cursosActivos,    color:"#f59e0b" },
-                { label:"Registros hoy",      value:asistencias.filter(a=>a.fecha===new Date().toISOString().slice(0,10)).length, color:"#8b5cf6" },
+                { label:"Registros hoy",      value:asistencias.filter(a=>a.fecha===now.toLocaleDateString("sv-SE")).length, color:"#8b5cf6" },
+
               ].map((c, i) => (
                 <div key={i} style={{ ...s.summaryCard, borderColor:`${c.color}33` }}>
                   <div style={{ fontSize:28, fontWeight:800, color:c.color }}>{c.value}</div>
@@ -932,7 +938,14 @@ function StudentScreen({ course, token: qrToken, onBack }) {
   const [success,     setSuccess]     = useState(false);
   const [successData, setSuccessData] = useState(null);
   const [formError,   setFormError]   = useState("");
-  const now = new Date();
+    // Reloj en tiempo real para la barra de estado y tarjetas
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
 
   const fmtDist = m => m===null ? "—" : m<1000 ? `${Math.round(m)} m` : `${(m/1000).toFixed(2)} km`;
 
