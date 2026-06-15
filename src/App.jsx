@@ -1,3 +1,20 @@
+CORRECCIÓN ADICIONAL
+
+No quiero una sección llamada "Previsualizar vista del estudiante", "Vista del estudiante", "Simulación del estudiante" ni ningún componente similar dentro del panel del docente.
+
+El flujo que necesito es el siguiente:
+
+1. El docente ingresa al sistema.
+2. El docente selecciona una clase o curso.
+3. El docente presiona el botón "Tomar asistencia".
+4. El sistema genera y muestra únicamente el código QR.
+5. El docente comparte o proyecta ese código QR a los estudiantes.
+6. Los estudiantes escanean el QR desde sus propios dispositivos.
+7. El formulario de asistencia debe abrirse únicamente en el dispositivo del estudiante después de escanear el QR.
+8. El panel del docente no debe mostrar ninguna previsualización, simulación ni réplica de la pantalla del estudiante.
+
+Por favor elimina completamente cualquier sección de previsualización de estudiante que exista actualmente y deja únicamente la funcionalidad necesaria para generar y mostrar el código QR al docente.
+
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
@@ -564,7 +581,7 @@ function LoginScreen({ onLogin }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // SCREEN 2A — GESTIÓN DE CURSOS (NUEVA)
 // ═══════════════════════════════════════════════════════════════════════════════
-function CoursesScreen({ professor, courses, loadingCourses, onRefresh, onSelectCourse, onBack, onLogout }) {
+function CoursesScreen({ professor, courses, loadingCourses, onRefresh, onSelectCourse, onDashboard, onManual, onLogout }) {
   const [showModal,    setShowModal]    = useState(false);
   const [editCourse,   setEditCourse]   = useState(null);
   const [deletingId,   setDeletingId]   = useState(null);
@@ -590,14 +607,15 @@ function CoursesScreen({ professor, courses, loadingCourses, onRefresh, onSelect
       {/* Header */}
       <header style={s.dashHeader}>
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          <button style={s.ghostBtn} onClick={onBack}>← Dashboard</button>
           <div style={s.logoMark}><Icon.BookOpen /></div>
           <div>
             <div style={{ color:"#f1f5f9", fontWeight:700, fontSize:17 }}>Gestión de Cursos</div>
             <div style={{ color:"#475569", fontSize:12 }}>{professor.name}</div>
           </div>
         </div>
-        <div style={{ display:"flex", gap:10 }}>
+        <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
+          <button style={s.ghostBtn} onClick={onDashboard}><Icon.Chart /><span style={{ marginLeft:6 }}>Dashboard</span></button>
+          <button style={s.ghostBtn} onClick={onManual}><Icon.AlertTri /><span style={{ marginLeft:6 }}>Manual</span></button>
           <button style={{ ...s.primaryBtn }} onClick={() => { setEditCourse(null); setShowModal(true); }}>
             <Icon.PlusCircle /><span style={{ marginLeft:6 }}>Nuevo Curso</span>
           </button>
@@ -707,10 +725,97 @@ function CoursesScreen({ professor, courses, loadingCourses, onRefresh, onSelect
 // ═══════════════════════════════════════════════════════════════════════════════
 // SCREEN 2B — DASHBOARD (actualizado con datos reales + filtros)
 // ═══════════════════════════════════════════════════════════════════════════════
-function DashboardScreen({ professor, courses, selectedCourse, onLogout, onManualSave, onGoToCourses }) {
-  const [tab,          setTab]          = useState("qr");
+function QRSessionScreen({ professor, course, onCourses, onDashboard, onManual, onLogout }) {
+  const { token, secondsLeft } = useQRTimer(!!course, 30);
+  const qrURL = course
+    ? `${window.location.origin}${window.location.pathname}?materia=${course.id}&token=${token}`
+    : null;
+
+  return (
+    <div style={s.dashBg}>
+      <div style={s.gridOverlay} />
+
+      <header style={s.dashHeader}>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={s.logoMark}><Icon.QR /></div>
+          <div>
+            <div style={{ color:"#f1f5f9", fontWeight:700, fontSize:17 }}>Tomar Asistencia</div>
+            <div style={{ color:"#475569", fontSize:12 }}>{professor.name} · {course?.name || "Curso no seleccionado"}</div>
+          </div>
+        </div>
+        <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
+          <button style={s.ghostBtn} onClick={onCourses}><Icon.BookOpen /><span style={{ marginLeft:6 }}>Cursos</span></button>
+          <button style={s.ghostBtn} onClick={onManual}><Icon.AlertTri /><span style={{ marginLeft:6 }}>Manual</span></button>
+          <button style={s.ghostBtn} onClick={onDashboard}><Icon.Chart /><span style={{ marginLeft:6 }}>Dashboard</span></button>
+          <button style={s.ghostBtn} onClick={onLogout}><Icon.Logout /></button>
+        </div>
+      </header>
+
+      <main style={s.dashMain}>
+        <div style={s.qrPanel}>
+          {course ? (
+            <>
+              <div style={{ textAlign:"center", marginBottom:18 }}>
+                <div style={{ color:"#f1f5f9", fontSize:20, fontWeight:800 }}>{course.name}</div>
+                <div style={{ color:"#475569", fontSize:12, fontFamily:"monospace", marginTop:4 }}>{course.id}</div>
+              </div>
+              <div style={s.qrWrapper}>
+                <div style={{ position:"relative", display:"inline-block" }}>
+                  <QRCode value={qrURL || ""} size={180} />
+                </div>
+              </div>
+              <div style={s.timerRow}>
+                <Icon.Clock />
+                <span>QR rota en <strong style={{ color:"#f1f5f9" }}>{secondsLeft}s</strong></span>
+                <div style={{ flex:1, height:3, background:"rgba(255,255,255,0.05)", borderRadius:3, overflow:"hidden" }}>
+                  <div style={{ height:"100%", background:"#3b82f6", borderRadius:3, width:`${(secondsLeft/30)*100}%`, transition:"width 1s linear" }} />
+                </div>
+              </div>
+              <div style={s.qrHint}>
+                <Icon.Wifi color="#3b82f6" />
+                <span style={{ marginLeft:8, fontSize:11, color:"#475569", wordBreak:"break-all" }}>{qrURL}</span>
+              </div>
+            </>
+          ) : (
+            <div style={{ textAlign:"center", padding:"40px 0", color:"#475569" }}>
+              <div style={{ color:"#94a3b8", fontSize:15, fontWeight:600 }}>Selecciona un curso para generar su QR.</div>
+              <button style={{ ...s.primaryBtn, marginTop:16 }} onClick={onCourses}>
+                <Icon.BookOpen /><span style={{ marginLeft:6 }}>Ir a Cursos</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function ManualScreen({ professor, courses, onCourses, onDashboard, onLogout }) {
+  return (
+    <div style={s.dashBg}>
+      <div style={s.gridOverlay} />
+      <header style={s.dashHeader}>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={s.logoMark}><Icon.AlertTri /></div>
+          <div>
+            <div style={{ color:"#f1f5f9", fontWeight:700, fontSize:17 }}>Asistencia Manual</div>
+            <div style={{ color:"#475569", fontSize:12 }}>{professor.name}</div>
+          </div>
+        </div>
+        <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
+          <button style={s.ghostBtn} onClick={onCourses}><Icon.BookOpen /><span style={{ marginLeft:6 }}>Cursos</span></button>
+          <button style={s.ghostBtn} onClick={onDashboard}><Icon.Chart /><span style={{ marginLeft:6 }}>Dashboard</span></button>
+          <button style={s.ghostBtn} onClick={onLogout}><Icon.Logout /></button>
+        </div>
+      </header>
+      <ManualModal courses={courses} onSave={() => {}} onClose={onCourses} />
+    </div>
+  );
+}
+
+function DashboardScreen({ professor, courses, onLogout, onGoToCourses, onGoToManual }) {
+  const [tab]                         = useState("report");
   const [activeCourse, setActiveCourse] = useState(null);
-  const [showManual,   setShowManual]   = useState(false);
   const [asistencias,  setAsistencias]  = useState([]);
   const [loadingData,  setLoadingData]  = useState(false);
   const [apiError,     setApiError]     = useState("");
@@ -735,18 +840,7 @@ function DashboardScreen({ professor, courses, selectedCourse, onLogout, onManua
     }
   }, []);
 
-  useEffect(() => { if (tab === "report") loadAsistencias(); }, [tab, loadAsistencias]);
-  useEffect(() => {
-    if (tab !== "report") return;
-    const timer = setInterval(loadAsistencias, 10000);
-    return () => clearInterval(timer);
-  }, [tab, loadAsistencias]);
-  useEffect(() => {
-    if (selectedCourse) {
-      setActiveCourse(selectedCourse);
-      setTab("qr");
-    }
-  }, [selectedCourse]);
+  useEffect(() => { loadAsistencias(); }, [loadAsistencias]);
   useEffect(() => { if (courses.length > 0 && !activeCourse) setActiveCourse(courses[0]); }, [courses]);
 
   const qrURL = activeCourse
@@ -782,10 +876,8 @@ function DashboardScreen({ professor, courses, selectedCourse, onLogout, onManua
         </div>
         <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
           <button style={s.ghostBtn} onClick={onGoToCourses}><Icon.BookOpen /><span style={{ marginLeft:6 }}>Cursos</span></button>
-          <button style={s.ghostBtn} onClick={() => setShowManual(true)}><Icon.AlertTri /><span style={{ marginLeft:6 }}>Manual</span></button>
-          <button style={{ ...s.primaryBtn }} onClick={() => setTab(t => t==="qr"?"report":"qr")}>
-            {tab==="qr" ? <><Icon.Chart /><span style={{ marginLeft:6 }}>Reporte</span></> : <><Icon.QR /><span style={{ marginLeft:6 }}>QR</span></>}
-          </button>
+          <button style={s.ghostBtn} onClick={onGoToManual}><Icon.AlertTri /><span style={{ marginLeft:6 }}>Manual</span></button>
+          <button style={{ ...s.primaryBtn }}><Icon.Chart /><span style={{ marginLeft:6 }}>Dashboard</span></button>
           <button style={s.ghostBtn} onClick={onLogout}><Icon.Logout /></button>
         </div>
       </header>
@@ -959,13 +1051,6 @@ function DashboardScreen({ professor, courses, selectedCourse, onLogout, onManua
         )}
       </main>
 
-      {showManual && (
-        <ManualModal
-          courses={courses}
-          onSave={record => { onManualSave(record); loadAsistencias(); }}
-          onClose={() => setShowManual(false)}
-        />
-      )}
     </div>
   );
 }
@@ -1238,14 +1323,14 @@ export default function App() {
   const handleLogin = async (prof) => {
     setProfessor(prof);
     await loadCourses();
-    setScreen("dashboard");
+    setScreen("courses");
   };
 
   const handleLogout = () => { setProfessor(null); setCourses([]); setSelectedCourse(null); setScreen("login"); };
 
   const handleTakeAttendance = (course) => {
     setSelectedCourse(course);
-    setScreen("dashboard");
+    setScreen("qr");
   };
 
   if (screen==="boot") return (
@@ -1278,10 +1363,28 @@ export default function App() {
         <DashboardScreen
           professor={professor}
           courses={courses}
-          selectedCourse={selectedCourse}
           onLogout={handleLogout}
-          onManualSave={() => {}}
           onGoToCourses={() => setScreen("courses")}
+          onGoToManual={() => setScreen("manual")}
+        />
+      )}
+      {screen==="manual" && professor && (
+        <ManualScreen
+          professor={professor}
+          courses={courses}
+          onCourses={() => setScreen("courses")}
+          onDashboard={() => setScreen("dashboard")}
+          onLogout={handleLogout}
+        />
+      )}
+      {screen==="qr" && professor && (
+        <QRSessionScreen
+          professor={professor}
+          course={selectedCourse}
+          onCourses={() => setScreen("courses")}
+          onDashboard={() => setScreen("dashboard")}
+          onManual={() => setScreen("manual")}
+          onLogout={handleLogout}
         />
       )}
       {screen==="courses" && professor && (
@@ -1291,7 +1394,8 @@ export default function App() {
           loadingCourses={loadingCourses}
           onRefresh={loadCourses}
           onSelectCourse={handleTakeAttendance}
-          onBack={() => setScreen("dashboard")}
+          onDashboard={() => setScreen("dashboard")}
+          onManual={() => setScreen("manual")}
           onLogout={handleLogout}
         />
       )}
