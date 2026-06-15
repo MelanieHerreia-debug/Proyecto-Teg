@@ -669,12 +669,7 @@ function DashboardScreen({ professor, courses, selectedCourse, onLogout, onManua
   const [loadingData,  setLoadingData]  = useState(false);
   const [apiError,     setApiError]     = useState("");
 
-    const [now, setNow] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer); // Limpieza al desmontar
-  }, []);
+  
 
 
   // Filtros
