@@ -1,19 +1,3 @@
-CORRECCIÓN ADICIONAL
-
-No quiero una sección llamada "Previsualizar vista del estudiante", "Vista del estudiante", "Simulación del estudiante" ni ningún componente similar dentro del panel del docente.
-
-El flujo que necesito es el siguiente:
-
-1. El docente ingresa al sistema.
-2. El docente selecciona una clase o curso.
-3. El docente presiona el botón "Tomar asistencia".
-4. El sistema genera y muestra únicamente el código QR.
-5. El docente comparte o proyecta ese código QR a los estudiantes.
-6. Los estudiantes escanean el QR desde sus propios dispositivos.
-7. El formulario de asistencia debe abrirse únicamente en el dispositivo del estudiante después de escanear el QR.
-8. El panel del docente no debe mostrar ninguna previsualización, simulación ni réplica de la pantalla del estudiante.
-
-Por favor elimina completamente cualquier sección de previsualización de estudiante que exista actualmente y deja únicamente la funcionalidad necesaria para generar y mostrar el código QR al docente.
 
 
 import { useState, useEffect, useRef, useCallback } from "react";
